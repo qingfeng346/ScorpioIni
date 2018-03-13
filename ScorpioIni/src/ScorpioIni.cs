@@ -157,6 +157,14 @@ public class ScorpioIni {
             m_ConfigData.Add(section, new ScorpioIniSection(section));
         m_ConfigData[section].Set(key, value, comment);
     }
+    /// <summary> 判断Key是否存在 </summary>
+    public bool Has(string key) {
+        return Has("", key);
+    }
+    /// <summary> 判断Key是否存在 </summary>
+    public bool Has(string section, string key) {
+        return Get(section, key) != null;
+    }
     /// <summary> 删除Key </summary>
     public void Remove(string key) {
         Remove("", key);
