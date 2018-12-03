@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFrameworks>netstandard1.3;net45;netcoreapp1.0</TargetFrameworks>
+    <Authors>while</Authors>
+    <PackageProjectUrl>https://github.com/qingfeng346/ScorpioIni</PackageProjectUrl>
+    <Description>注释使用 # ; //  数据格式为 key=value, 不支持回车</Description>
   </PropertyGroup>
 
 </Project>
