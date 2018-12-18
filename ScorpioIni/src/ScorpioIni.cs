@@ -4,12 +4,11 @@ using System.Collections.ObjectModel;
 using System.Text;
 using System.IO;
 
-
 namespace Scorpio.Ini {
-
     /// <summary> 读取ini文件 </summary>
     public class ScorpioIni {
         public const string HintString = "注释使用 # ; //  数据格式为 key=value, 不支持回车";
+        private const string DefaultSection = "";
         /// <summary> 所有数据 </summary>
         private Dictionary<string, ScorpioIniSection> m_ConfigData = new Dictionary<string, ScorpioIniSection>();
         public string File { get; set; }
@@ -44,32 +43,34 @@ namespace Scorpio.Ini {
             try {
                 m_ConfigData.Clear();
                 string[] datas = buffer.Split('\n');    //所有行数据
-                string section = "";                    //区间
+                string section = DefaultSection;        //区间
                 string comment = "";                    //注释
                 int count = datas.Length;
                 for (int i = 0; i < count; ++i) {
                     string data = datas[i].Trim();
-                    if (!string.IsNullOrEmpty(data)) {
-                        // [#] [;] [//] 开头都可以注释单行注释
-                        if (data.StartsWith("//") || data.StartsWith("#") || data.StartsWith(";")) {
-                            comment = data;
-                            continue;
+                    if (string.IsNullOrWhiteSpace(data)) { continue; }
+                    // [#] [;] [//] 开头都可以注释单行注释
+                    if (data.StartsWith("//") || data.StartsWith("#") || data.StartsWith(";")) {
+                        comment = data;
+                        continue;
+                    }
+                    if (data.StartsWith("[") && data.EndsWith("]")) {
+                        section = data.Substring(1, data.Length - 2).Trim();
+                        if (string.IsNullOrWhiteSpace(section)) {
+                            throw new Exception((i + 1) + " 行填写错误, 区间值不能为空");
                         }
-                        if (data.StartsWith("[") && data.EndsWith("]")) {
-                            section = data.Substring(1, data.Length - 2);
+                    } else {
+                        int index = data.IndexOf("=");
+                        if (index >= 0) {
+                            string key = data.Substring(0, index).Trim();
+                            string value = data.Substring(index + 1).Trim();
+                            Set(section, key, value, comment.ToString());
                         } else {
-                            int index = data.IndexOf("=");
-                            if (index >= 0) {
-                                string key = data.Substring(0, index).Trim();
-                                string value = data.Substring(index + 1).Trim();
-                                Set(section, key, value, comment.ToString());
-                            } else {
-                                throw new Exception((i + 1) + " 行填写错误, " + HintString);
-                            }
+                            throw new Exception((i + 1) + " 行填写错误, " + HintString);
                         }
                     }
                 }
-            } catch (System.Exception e) {
+            } catch (Exception e) {
                 throw new Exception("initialize is error : " + e.ToString());
             }
         }
@@ -80,48 +81,29 @@ namespace Scorpio.Ini {
             }
         }
         /// <summary> 返回单个模块的数据 </summary>
-        public ScorpioIniSection GetSection() {
-            return GetSection("");
-        }
+        public ScorpioIniSection GetSection() { return GetSection(DefaultSection); }
         /// <summary> 返回单个模块的数据 </summary>
-        public ScorpioIniSection GetSection(string section) {
-            if (!m_ConfigData.ContainsKey(section))
-                return null;
-            return m_ConfigData[section];
-        }
+        public ScorpioIniSection GetSection(string section) { return m_ConfigData.ContainsKey(section) ? m_ConfigData[section] : null; }
         /// <summary> 获得Value </summary>
-        public string Get(string key) {
-            return Get("", key);
-        }
+        public string Get(string key) { return Get(DefaultSection, key); }
         /// <summary> 设置Value </summary>
-        public string Get(string section, string key) {
-            return GetDef(section, key, null);
-        }
-        public string GetDef(string key, string def) {
-            return GetDef("", key, def);
-        }
+        public string Get(string section, string key) { return GetDef(section, key, null); }
+        public string GetDef(string key, string def) { return GetDef(DefaultSection, key, def); }
         public string GetDef(string section, string key, string def) {
             var value = GetValue(section, key);
             return value != null ? value.value : def;
         }
-        public ScorpioIniValue GetValue(string key) {
-            return GetValue("", key);
-        }
+        public ScorpioIniValue GetValue(string key) { return GetValue("", key); }
         /// <summary> 设置Value </summary>
         public ScorpioIniValue GetValue(string section, string key) {
-            if (m_ConfigData.Count <= 0) return null;
+            if (m_ConfigData.Count == 0) return null;
             if (section == null) section = "";
-            if (!m_ConfigData.ContainsKey(section)) return null;
-            return m_ConfigData[section].Get(key);
+            return m_ConfigData.ContainsKey(section) ? m_ConfigData[section].Get(key) : null;
         }
         /// <summary> 设置Value </summary>
-        public void Set(string key, string value) {
-            Set("", key, value);
-        }
+        public void Set(string key, string value) { Set(DefaultSection, key, value); }
         /// <summary> 设置Value </summary>
-        public void Set(string section, string key, string value) {
-            Set(section, key, value, null);
-        }
+        public void Set(string section, string key, string value) { Set(section, key, value, null); }
         /// <summary> 设置Value </summary>
         public void Set(string section, string key, string value, string comment) {
             if (!m_ConfigData.ContainsKey(section))
@@ -129,17 +111,13 @@ namespace Scorpio.Ini {
             m_ConfigData[section].Set(key, value, comment);
         }
         /// <summary> 判断Key是否存在 </summary>
-        public bool Has(string key) {
-            return Has("", key);
-        }
+        public bool Has(string key) { return Has(DefaultSection, key); }
         /// <summary> 判断Key是否存在 </summary>
-        public bool Has(string section, string key) {
-            return Get(section, key) != null;
-        }
+        public bool Has(string section, string key) { return Get(section, key) != null; }
+        public bool HasSection() { return HasSection(DefaultSection); }
+        public bool HasSection(string section) { return m_ConfigData.ContainsKey(section); }
         /// <summary> 删除Key </summary>
-        public bool Remove(string key) {
-            return Remove("", key);
-        }
+        public bool Remove(string key) { return Remove(DefaultSection, key); }
         /// <summary> 删除Key </summary>
         public bool Remove(string section, string key) {
             if (m_ConfigData.ContainsKey(section)) {
@@ -148,9 +126,7 @@ namespace Scorpio.Ini {
             return false;
         }
         /// <summary> 清空一个模块 </summary>
-        public bool RemoveSection() {
-            return RemoveSection("");
-        }
+        public bool RemoveSection() { return RemoveSection(DefaultSection); }
         /// <summary> 清空一个模块 </summary>
         public bool RemoveSection(string section) {
             if (m_ConfigData.ContainsKey(section)) {
@@ -167,8 +143,8 @@ namespace Scorpio.Ini {
         public string BuilderString() {
             var datas = new SortedDictionary<string, ScorpioIniSection>(m_ConfigData);
             StringBuilder builder = new StringBuilder();
-            if (datas.ContainsKey("")) {
-                Content(builder, datas[""]);
+            if (datas.ContainsKey(DefaultSection)) {
+                Content(builder, datas[DefaultSection]);
             }
             foreach (var pair in datas) {
                 if (string.IsNullOrEmpty(pair.Key))
@@ -177,10 +153,10 @@ namespace Scorpio.Ini {
             }
             return builder.ToString();
         }
-        public void Content(StringBuilder builder, ScorpioIniSection section) {
-            if (!string.IsNullOrEmpty(section.section))
+        void Content(StringBuilder builder, ScorpioIniSection section) {
+            if (section.section != DefaultSection)
                 builder.AppendFormat("[{0}]\n", section.section);
-            foreach (var data in section.datas) {
+            foreach (var data in section.Datas) {
                 var value = data.Value;
                 if (!string.IsNullOrEmpty(value.comment))
                     builder.AppendLine(value.comment);

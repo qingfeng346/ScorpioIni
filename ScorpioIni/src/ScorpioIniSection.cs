@@ -10,7 +10,7 @@ namespace Scorpio.Ini {
         public string section { get; private set; }
         /// <summary> 所有数据 </summary>
         private Dictionary<string, ScorpioIniValue> m_datas = new Dictionary<string, ScorpioIniValue>();
-        public ReadOnlyDictionary<string, ScorpioIniValue> datas { get { return new ReadOnlyDictionary<string, ScorpioIniValue>(m_datas); } }
+        public ReadOnlyDictionary<string, ScorpioIniValue> Datas { get { return new ReadOnlyDictionary<string, ScorpioIniValue>(m_datas); } }
         public ScorpioIniSection(string section) {
             this.section = section;
         }
